@@ -13,7 +13,7 @@ import (
 var DB *gorm.DB
 var err error
 
-const DNS = "ttt:ppp@tcp(127.0.0.1:3306)/db?parseTime=true"
+const DNS = "admin:password@tcp(127.0.0.1:3306)/db?parseTime=true"
 
 type User struct {
 	gorm.Model
@@ -36,7 +36,12 @@ func InitialMigration() {
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	setHeader(w)
 	var users []User
-	DB.Find(&users)
+	if result := DB.Find(&users); result.Error != nil {
+		http.Error(w, "Users not found!", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(users)
 }
 
@@ -46,7 +51,12 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	var user User
 	params := mux.Vars(r)
 
-	DB.First(&user, params["id"])
+	if result := DB.First(&user, params["id"]); result.Error != nil {
+		http.Error(w, "User not found!", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(user)
 }
 
@@ -56,7 +66,12 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	var user User
 	json.NewDecoder(r.Body).Decode(&user)
 
-	DB.Create(&user)
+	if result := DB.Create(&user); result.Error != nil {
+		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(user)
 }
 
@@ -67,10 +82,18 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	var user User
 	params := mux.Vars(r)
 
-	DB.First(&user, params["id"])
-	json.NewDecoder(r.Body).Decode(&user)
-	DB.Save(&user)
+	if result := DB.First(&user, params["id"]); result.Error != nil {
+		http.Error(w, "User not found!", http.StatusNotFound)
+		return
+	}
 
+	json.NewDecoder(r.Body).Decode(&user)
+	if response := DB.Save(&user); response.Error != nil {
+		http.Error(w, response.Error.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(user)
 }
 
@@ -81,8 +104,12 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	var user User
 	params := mux.Vars(r)
 
-	DB.Delete(&user, params["id"])
-	json.NewEncoder(w).Encode("user is deleted successfully")
+	if result := DB.Delete(&user, params["id"]); result.Error != nil {
+		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func setHeader(w http.ResponseWriter) {

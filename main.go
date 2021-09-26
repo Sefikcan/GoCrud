@@ -1,6 +1,7 @@
 package main
 
 import (
+	userHandler "gocrud/handlers/user"
 	"log"
 	"net/http"
 
@@ -10,16 +11,16 @@ import (
 func initializeRouter() {
 	r := mux.NewRouter()
 
-	r.HandleFunc("/api/v1/users", GetUsers).Methods("GET")
-	r.HandleFunc("/api/v1/users/{id}", GetUser).Methods("GET")
-	r.HandleFunc("/api/v1/users", CreateUser).Methods("POST")
-	r.HandleFunc("/api/v1/users/{id}", UpdateUser).Methods("PUT")
-	r.HandleFunc("/api/v1/users/{id}", DeleteUser).Methods("DELETE")
+	r.HandleFunc("/api/v1/users", userHandler.GetUsers).Methods("GET")
+	r.HandleFunc("/api/v1/users/{id}", userHandler.GetUser).Methods("GET")
+	r.HandleFunc("/api/v1/users", userHandler.CreateUser).Methods("POST")
+	r.HandleFunc("/api/v1/users/{id}", userHandler.UpdateUser).Methods("PUT")
+	r.HandleFunc("/api/v1/users/{id}", userHandler.DeleteUser).Methods("DELETE")
 
 	log.Fatal(http.ListenAndServe(":8081", r))
 }
 
 func main() {
-	InitialMigration()
+	userHandler.InitialMigration()
 	initializeRouter()
 }
